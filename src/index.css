@@ -11,3 +11,20 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.file-list ul {
+  height: 100px;
+  overflow-y: auto;
+}
+
+.file-list ul li {
+  border: 1px solid #cecbcb;
+  padding: 10px 10px 10px 20px;
+  background: #f2f1f1;
+  font-size: 12px;
+}
+
+.file-list button {
+  padding: 0;
+  margin: 0;
+}
