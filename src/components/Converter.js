@@ -85,7 +85,9 @@ const Converter = () => {
 
   return (
     <div className="converter">
-      <h1>Image to WebP Converter</h1>
+    <img src="../../Mug.gif" alt="FE MUG" />
+        
+      <h1>WebP Converter</h1>
 
       {/* File Input */}
       <input
