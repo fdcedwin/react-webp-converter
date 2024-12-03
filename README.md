@@ -5,7 +5,7 @@ https://fe-webp-converter.netlify.app/
 ### 1. `npm install`
 ### 2. `npm install browser-image-compression`
 ### 3. `npm install jszip`
-### 2. `npm install react-dropzone`
+### 4. `npm install react-dropzone`
 
 In the project directory, you can run: (Assuming you have completed the steps above)
 
