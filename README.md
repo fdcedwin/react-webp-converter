@@ -4,7 +4,7 @@ https://fe-webp-converter.netlify.app/
 ## Installation
 ### 1. `npx create-react-app image-converter-webapp`
 ### 2. `npm install`
-### 3. `npm install browser-image-compression`
+### ~~3. `npm install browser-image-compression`~~
 ### 4. `npm install jszip`
 ### 5. `npm install react-dropzone`
 
