@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import JSZip from 'jszip';
 import { useDropzone } from 'react-dropzone';
 
-const Converter = () => {
+const VideoConverter = () => {
   const [selectedFiles, setSelectedFiles] = useState([]); // [{ file: File, progress: number }]
   const [convertedFiles, setConvertedFiles] = useState([]);
   const [status, setStatus] = useState("");
@@ -18,66 +18,66 @@ const Converter = () => {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: 'image/png, image/jpeg',
+    accept: 'video/mp4',
   });
 
   const removeFile = (indexToRemove) => {
     setSelectedFiles((prevFiles) => prevFiles.filter((_, index) => index !== indexToRemove));
   };
 
-  const convertImageToWebP = (file) => {
+  const convertMp4ToWebM = (file) => {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
+      const video = document.createElement('video');
+      video.src = URL.createObjectURL(file);
+      video.crossOrigin = 'anonymous';
 
-          // Set canvas dimensions to the image dimensions
-          canvas.width = img.width;
-          canvas.height = img.height;
+      video.onloadedmetadata = () => {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
 
-          // Disable image smoothing for lossless scaling
-          ctx.imageSmoothingEnabled = false;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
 
-          // Draw the image onto the canvas
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const stream = canvas.captureStream();
+        const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp9' });
 
-          // Convert to WebP
-          canvas.toBlob(
-            (blob) => {
-              if (blob) {
-                const webpFile = new File(
-                  [blob],
-                  file.name.replace(/\.[^/.]+$/, ".webp"),
-                  { type: "image/webp" }
-                );
-                resolve(webpFile);
-              } else {
-                reject(new Error("Conversion failed"));
-              }
-            },
-            "image/webp",
-            1.0 // Maximum quality for WebP
-          );
+        const chunks = [];
+        mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(chunks, { type: 'video/webm' });
+          const webmFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".webm"), { type: "video/webm" });
+          resolve(webmFile);
         };
-        img.onerror = () => reject(new Error("Failed to load image"));
-        img.src = reader.result;
+
+        mediaRecorder.onerror = () => reject(new Error("Failed to record video"));
+
+        mediaRecorder.start();
+        video.play();
+
+        const renderFrame = () => {
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+          if (!video.ended) {
+            requestAnimationFrame(renderFrame);
+          } else {
+            mediaRecorder.stop();
+          }
+        };
+        renderFrame();
       };
-      reader.onerror = () => reject(new Error("Failed to read file"));
-      reader.readAsDataURL(file);
+
+      video.onerror = () => reject(new Error("Failed to load video"));
     });
   };
 
-  const convertToWebP = async () => {
+  const convertToWebM = async () => {
     if (!selectedFiles.length) {
-      setStatus("Please select or drop images to convert!");
+      setStatus("Please select or drop videos to convert!");
       return;
     }
 
     setConvertedFiles([]);
-    setStatus("Converting images...");
+    setStatus("Converting videos...");
     setIsConverting(true); // Show progress bars
     setIsConversionComplete(false); // Reset conversion complete state
 
@@ -101,9 +101,9 @@ const Converter = () => {
           );
         }
 
-        const webpFile = await convertImageToWebP(file);
+        const webmFile = await convertMp4ToWebM(file);
 
-        converted.push(webpFile);
+        converted.push(webmFile);
 
         setSelectedFiles((prevFiles) =>
           prevFiles.map((f, index) =>
@@ -128,7 +128,7 @@ const Converter = () => {
 
   const downloadAllAsZip = async () => {
     const zip = new JSZip();
-    const folder = zip.folder("Converted_WebP_Images");
+    const folder = zip.folder("Converted_WebM_Videos");
 
     convertedFiles.forEach((file) => {
       folder.file(file.name, file);
@@ -138,7 +138,7 @@ const Converter = () => {
     const zipBlob = await zip.generateAsync({ type: "blob" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(zipBlob);
-    link.download = "Converted_Images.zip";
+    link.download = "Converted_Videos.zip";
     link.click();
     URL.revokeObjectURL(link.href);
     setStatus("ZIP file ready for download!");
@@ -154,7 +154,7 @@ const Converter = () => {
 
   return (
     <div className="converter">
-      <h1>WebP Converter</h1>
+      <h1>WebM Converter</h1>
 
       {/* Drag and Drop Area */}
       {!isConverting && !isConversionComplete && (
@@ -230,7 +230,7 @@ const Converter = () => {
       {/* Convert Button */}
       {!isConversionComplete && (
         <button
-          onClick={convertToWebP}
+          onClick={convertToWebM}
           style={{
             marginTop: '10px',
             background: '#014599',
@@ -242,9 +242,11 @@ const Converter = () => {
             width: '200px',
             fontSize: '16px',
             transition: 'background-color 0.3s',
+            pointerEvents: isConverting ? 'none' : 'unset',
           }}
-          onMouseEnter={(e) => e.target.style.backgroundColor = '#0b1b5c'}
-          onMouseLeave={(e) => e.target.style.backgroundColor = '#014599'}
+          onMouseEnter={(e) => (e.target.style.backgroundColor = '#0b1b5c')}
+          onMouseLeave={(e) => (e.target.style.backgroundColor = '#014599')}
+          className={isConverting ? 'disabled' : ''}
         >
           CONVERT
         </button>
@@ -267,4 +269,4 @@ const Converter = () => {
   );
 };
 
-export default Converter;
+export default VideoConverter;

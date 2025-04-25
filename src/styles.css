@@ -19,4 +19,26 @@ body {
   .converted-files div {
     margin-top: 10px;
   }
-  
+
+  .hidden{
+    display: none;
+  }
+  .changeConverter p{
+    cursor: pointer;
+  }
+  .disabled {
+    background-color: #ccc !important;
+    pointer-events: none;
+  }
+
+  .changeConverter {
+    display: flex;
+    justify-content: center;
+    gap: 25px;
+}
+
+.changeConverter p {
+  padding: 10px;
+  background: rgb(1, 69, 153);
+  color: #fff;
+}
