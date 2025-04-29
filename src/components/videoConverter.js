@@ -3,11 +3,11 @@ import JSZip from 'jszip';
 import { useDropzone } from 'react-dropzone';
 
 const VideoConverter = () => {
-  const [selectedFiles, setSelectedFiles] = useState([]); // [{ file: File, progress: number }]
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [convertedFiles, setConvertedFiles] = useState([]);
   const [status, setStatus] = useState("");
-  const [isConverting, setIsConverting] = useState(false); // Conversion state
-  const [isConversionComplete, setIsConversionComplete] = useState(false); // Track if conversion is complete
+  const [isConverting, setIsConverting] = useState(false);
+  const [isConversionComplete, setIsConversionComplete] = useState(false);
 
   const onDrop = useCallback((acceptedFiles) => {
     const filesWithProgress = acceptedFiles.map((file) => ({ file, progress: 0 }));
@@ -34,14 +34,25 @@ const VideoConverter = () => {
       video.onloadedmetadata = () => {
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
-
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
 
         const stream = canvas.captureStream();
-        const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp9' });
+        let mimeType = '';
+        if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+          mimeType = 'video/webm;codecs=vp9';
+        } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
+          mimeType = 'video/webm;codecs=vp8';
+        } else if (MediaRecorder.isTypeSupported('video/webm')) {
+          mimeType = 'video/webm';
+        } else {
+          reject(new Error("WebM not supported by your browser."));
+          return;
+        }
 
+        const mediaRecorder = new MediaRecorder(stream, { mimeType });
         const chunks = [];
+
         mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
 
         mediaRecorder.onstop = () => {
@@ -50,7 +61,7 @@ const VideoConverter = () => {
           resolve(webmFile);
         };
 
-        mediaRecorder.onerror = () => reject(new Error("Failed to record video"));
+        mediaRecorder.onerror = () => reject(new Error("Recording failed"));
 
         mediaRecorder.start();
         video.play();
@@ -78,10 +89,11 @@ const VideoConverter = () => {
 
     setConvertedFiles([]);
     setStatus("Converting videos...");
-    setIsConverting(true); // Show progress bars
-    setIsConversionComplete(false); // Reset conversion complete state
+    setIsConverting(true);
+    setIsConversionComplete(false);
 
     const converted = [];
+
     for (let i = 0; i < selectedFiles.length; i++) {
       try {
         const file = selectedFiles[i].file;
@@ -111,19 +123,18 @@ const VideoConverter = () => {
           )
         );
       } catch (error) {
-        console.error("Error converting file:", error);
+        console.error("Conversion error:", error);
       }
     }
 
     setConvertedFiles(converted);
     setIsConverting(false);
     setIsConversionComplete(true);
-
-    if (converted.length > 1) {
-      setStatus("Conversion successful! Download all the files in a ZIP format.");
-    } else {
-      setStatus("Conversion successful!");
-    }
+    setStatus(
+      converted.length > 1
+        ? "Conversion successful! Download all the files in a ZIP format."
+        : "Conversion successful!"
+    );
   };
 
   const downloadAllAsZip = async () => {
@@ -152,11 +163,18 @@ const VideoConverter = () => {
     URL.revokeObjectURL(link.href);
   };
 
+  const resetConverter = () => {
+    setSelectedFiles([]);
+    setConvertedFiles([]);
+    setStatus("");
+    setIsConverting(false);
+    setIsConversionComplete(false);
+  };
+
   return (
     <div className="converter">
       <h1>WebM Converter</h1>
 
-      {/* Drag and Drop Area */}
       {!isConverting && !isConversionComplete && (
         <div
           {...getRootProps()}
@@ -177,7 +195,6 @@ const VideoConverter = () => {
         </div>
       )}
 
-      {/* List Uploaded Files */}
       {selectedFiles.length > 0 && (
         <div className="file-list">
           <h3>Uploaded Files:</h3>
@@ -227,7 +244,6 @@ const VideoConverter = () => {
         </div>
       )}
 
-      {/* Convert Button */}
       {!isConversionComplete && (
         <button
           onClick={convertToWebM}
@@ -241,29 +257,76 @@ const VideoConverter = () => {
             margin: '0 auto',
             width: '200px',
             fontSize: '16px',
-            transition: 'background-color 0.3s',
-            pointerEvents: isConverting ? 'none' : 'unset',
           }}
           onMouseEnter={(e) => (e.target.style.backgroundColor = '#0b1b5c')}
           onMouseLeave={(e) => (e.target.style.backgroundColor = '#014599')}
-          className={isConverting ? 'disabled' : ''}
         >
           CONVERT
         </button>
       )}
+
       <p style={{ fontWeight: 'bold' }}>{status}</p>
 
-      {/* Show "Download All as ZIP" button if there are multiple files */}
       {convertedFiles.length > 1 && (
-        <button onClick={downloadAllAsZip}>Download Files (ZIP)</button>
+        <button onClick={downloadAllAsZip}
+          style={{
+            background: '#28a745',
+            border: 'none',
+            color: '#fff',
+            padding: '10px 20px',
+            fontSize: '16px',
+            cursor: 'pointer',
+            display: 'block',
+            margin: '20px auto',
+          }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = '#1f8a38'}
+          onMouseLeave={(e) => e.target.style.backgroundColor = '#28a745'}
+        >
+          Download Files (ZIP)
+        </button>
       )}
 
-      {/* Show individual downloads if only one file is converted */}
       {convertedFiles.length === 1 && (
         <div className="converted-files">
           <p>{convertedFiles[0].name}</p>
-          <button onClick={() => downloadFile(convertedFiles[0])}>Download</button>
+          <button onClick={() => downloadFile(convertedFiles[0])}
+            style={{
+              background: '#28a745',
+              border: 'none',
+              color: '#fff',
+              padding: '10px 20px',
+              fontSize: '16px',
+              cursor: 'pointer',
+              display: 'block',
+              margin: '20px auto',
+            }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = '#1f8a38'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = '#28a745'}
+          >
+            Download
+          </button>
         </div>
+      )}
+
+      {isConversionComplete && (
+        <button
+          onClick={resetConverter}
+          style={{
+            marginTop: '20px',
+            background: '#d50404',
+            border: 'none',
+            color: '#fff',
+            padding: '10px 20px',
+            fontSize: '16px',
+            cursor: 'pointer',
+            display: 'block',
+            margin: '20px auto',
+          }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = '#bc0303'}
+          onMouseLeave={(e) => e.target.style.backgroundColor = '#d50404'}
+        >
+          Convert Again?
+        </button>
       )}
     </div>
   );

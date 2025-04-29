@@ -162,8 +162,6 @@ const Converter = () => {
 
     return (
         <div className="converter">
-
-            <img src="../../Mug.gif" alt="FE MUG" />
             {/* <img src="../../shreckson.png" alt="FE MUG" /> */}
             <h1>WebP Converter</h1>
 
